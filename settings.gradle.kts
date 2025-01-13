@@ -1,5 +1,5 @@
 rootProject.name = "otusJava"
-include("L01-gradle")
+include("csv-report-generator")
 
 pluginManagement {
     val jgitver: String by settings
@@ -18,7 +18,7 @@ pluginManagement {
         id("com.github.johnrengelman.shadow") version johnrengelmanShadow
         id("com.google.cloud.tools.jib") version jib
         id("com.google.protobuf") version protobufVer
-        id("name.remal.sonarlint") version sonarlint
-        id("com.diffplug.spotless") version spotless
+       // id("name.remal.sonarlint") version sonarlint
+        //id("com.diffplug.spotless") version spotless
     }
 }
