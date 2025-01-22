@@ -7,9 +7,11 @@ import com.opencsv.bean.CsvToBeanBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.otus.model.SupplyReport;
@@ -17,20 +19,28 @@ import ru.otus.model.SupplyReport;
 @Service
 public class ReportService {
 
+    private final List<SupplyReport> reports = new ArrayList<>();
+
     public List<SupplyReport> parseCsv(MultipartFile file) throws Exception {
         System.out.println("Processing file: " + file.getOriginalFilename());
         try (var reader = new InputStreamReader(file.getInputStream())) {
-            return new CsvToBeanBuilder<SupplyReport>(reader)
+            List<SupplyReport> parsedReports = new CsvToBeanBuilder<SupplyReport>(reader)
                     .withType(SupplyReport.class)
                     .withSeparator(';')
                     .build()
                     .parse();
+            reports.addAll(parsedReports);
+            return parsedReports;
         }
+    }
+
+    public List<SupplyReport> getReports() {
+        return new ArrayList<>(reports);
     }
 
     public ByteArrayInputStream exportToExcel(List<SupplyReport> reports) throws Exception {
         try (var workbook = new XSSFWorkbook();
-                var out = new ByteArrayOutputStream()) {
+             var out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Supply Report");
 
             Row header = sheet.createRow(0);
@@ -76,5 +86,11 @@ public class ReportService {
             document.close();
             return new ByteArrayInputStream(out.toByteArray());
         }
+    }
+
+    @Async
+    public void processFile(MultipartFile file) {
+        // Логика обработки файла
+        System.out.println("Processing file: " + file.getOriginalFilename());
     }
 }
