@@ -11,10 +11,11 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.otus.model.SupplyReport;
 import ru.otus.service.ReportService;
 
+import java.sql.SQLException;
 import java.util.List;
 
 @Controller
-@RequestMapping("/reports")
+@RequestMapping("/report")
 public class ReportController {
 
     private final ReportService reportService;
@@ -24,27 +25,51 @@ public class ReportController {
         this.reportService = reportService;
     }
 
+    @PostMapping("/upload")
+    public String uploadFile(@RequestParam("file") MultipartFile file, Model model) {
+        try {
+            // Парсим CSV
+            List<SupplyReport> parsedReports = reportService.parseCsv(file);
+
+            // Сохраняем в базу
+            for (SupplyReport report : parsedReports) {
+                reportService.saveReport(report);
+            }
+
+            // Обновляем cachedReports
+            cachedReports = parsedReports;
+
+            model.addAttribute("reports", parsedReports);
+            return "report";
+        } catch (Exception e) {
+            model.addAttribute("error", "Ошибка при обработке файла: " + e.getMessage());
+            return "upload";
+        }
+    }
+
+    @GetMapping("/all")
+    public String getAllReports(Model model) throws SQLException {
+        List<SupplyReport> reports = reportService.getAllReports();
+        model.addAttribute("reports", reports);
+        return "report";
+    }
+
+    @GetMapping("/supplier")
+    public String getReportsBySupplier(@RequestParam String supplier, Model model) throws SQLException {
+        List<SupplyReport> reports = reportService.getReportsBySupplier(supplier);
+        model.addAttribute("reports", reports);
+        return "report";
+    }
+
     @GetMapping("/")
     public String index() {
         return "upload";
     }
 
-    @PostMapping("/upload")
-    public String uploadFile(@RequestParam("file") MultipartFile file, Model model) {
-        try {
-            cachedReports = reportService.parseCsv(file);
-            model.addAttribute("reports", cachedReports);
-            return "report";
-        } catch (Exception e) {
-            model.addAttribute("error", "Failed to process the file: " + e.getMessage());
-            return "upload";
-        }
-    }
-
     @GetMapping("/export/excel")
     public ResponseEntity<InputStreamResource> exportToExcel() throws Exception {
-        if (cachedReports == null) {
-            throw new IllegalStateException("No data available to export.");
+        if (cachedReports == null || cachedReports.isEmpty()) {
+            throw new IllegalStateException("Нет данных для экспорта. Сначала загрузите файл.");
         }
 
         var excelStream = reportService.exportToExcel(cachedReports);

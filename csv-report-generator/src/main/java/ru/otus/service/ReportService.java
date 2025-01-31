@@ -7,19 +7,25 @@ import com.opencsv.bean.CsvToBeanBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStreamReader;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import ru.otus.Handler.SupplyReportHandler;
 import ru.otus.model.SupplyReport;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ReportService {
 
     private final List<SupplyReport> reports = new ArrayList<>();
+    private final SupplyReportHandler supplyReportHandler;
 
     public List<SupplyReport> parseCsv(MultipartFile file) throws Exception {
         System.out.println("Processing file: " + file.getOriginalFilename());
@@ -92,5 +98,24 @@ public class ReportService {
     public void processFile(MultipartFile file) {
         // Логика обработки файла
         System.out.println("Processing file: " + file.getOriginalFilename());
+    }
+    @Autowired
+    public ReportService(SupplyReportHandler supplyReportHandler) {
+        this.supplyReportHandler = supplyReportHandler;
+    }
+
+    @Transactional
+    public void saveReport(SupplyReport report) throws SQLException {
+        supplyReportHandler.saveReport(report);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SupplyReport> getAllReports() throws SQLException {
+        return supplyReportHandler.getAllReports();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SupplyReport> getReportsBySupplier(String supplier) throws SQLException {
+        return supplyReportHandler.getReportsBySupplier(supplier);
     }
 }
