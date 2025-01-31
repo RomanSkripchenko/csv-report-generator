@@ -71,4 +71,28 @@ public class SupplyReportDaoImpl implements SupplyReportDao {
         report.setPrice(resultSet.getDouble("Price"));
         return report;
     }
+
+    @Override
+    public void update(SupplyReport report) throws SQLException {
+        String sql = "UPDATE SupplyReport SET Quantity = ?, Price = ? WHERE Supplier = ? AND Product = ?";
+
+        System.out.println("SQL-запрос: " + sql);
+        System.out.println("Данные: " + report.getQuantity() + ", " + report.getPrice() + ", " + report.getSupplier() + ", " + report.getProduct());
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, report.getQuantity());
+            statement.setDouble(2, report.getPrice());
+            statement.setString(3, report.getSupplier());
+            statement.setString(4, report.getProduct());
+
+            int rowsUpdated = statement.executeUpdate();
+            System.out.println("Обновлено строк: " + rowsUpdated);
+        }
+    }
+
+    @Override
+    public void delete(String supplier, String product) throws SQLException {
+
+    }
 }

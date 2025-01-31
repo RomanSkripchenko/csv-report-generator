@@ -1,31 +1,190 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta charset="UTF-8">
     <title>Report</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-<h1>Supply Report</h1>
-<table border="1">
-    <thead>
-    <tr>
-        <th>Supplier</th>
-        <th>Product</th>
-        <th>Quantity</th>
-        <th>Price</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="report : ${reports}">
-        <td th:text="${report.supplier}"></td>
-        <td th:text="${report.product}"></td>
-        <td th:text="${report.quantity}"></td>
-        <td th:text="${report.price}"></td>
-    </tr>
-    </tbody>
-</table>
-<a href="/report/export/excel">Export to Excel</a>
-<a href="/report/export/pdf">Export to PDF</a>
-<br>
-<a href="/report/">Upload another file</a>
+<div class="container mt-5">
+    <h1 class="text-center">Отчет по поставкам</h1>
+
+    <div class="d-flex justify-content-between mb-3">
+        <input type="text" id="supplierFilter" class="form-control w-25" placeholder="Фильтр по поставщику">
+        <div>
+            <a href="/report/export/excel" class="btn btn-success">Экспортировать Excel</a>
+            <a href="/report/export/pdf" class="btn btn-danger">Экспортировать PDF</a>
+            <button onclick="exportCharts()" class="btn btn-success">Экспортировать Excel с графиками</button>
+            <button onclick="exportPdf()" class="btn btn-danger">Экспортировать в PDF с графиками</button>
+        </div>
+    </div>
+
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+        <tr>
+            <th>Поставщик</th>
+            <th>Продукт</th>
+            <th>Количество</th>
+            <th>Цена</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody id="reportTable">
+        <tr th:each="report : ${reports}">
+            <td contenteditable="true" th:text="${report.supplier}"></td>
+            <td contenteditable="true" th:text="${report.product}"></td>
+            <td contenteditable="true" th:text="${report.quantity}"></td>
+            <td contenteditable="true" th:text="${report.price}"></td>
+            <td>
+                <button class="btn btn-primary btn-sm save-btn">Сохранить</button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <canvas id="priceTrendChart" class="mt-4"></canvas>
+    <canvas id="supplierDistributionChart" class="mt-4"></canvas>
+    <canvas id="supplyChart" class="mt-4"></canvas>
+</div>
+
+<script>
+    document.getElementById("supplierFilter").addEventListener("input", function () {
+        let filter = this.value.toLowerCase();
+        let rows = document.querySelectorAll("#reportTable tr");
+        rows.forEach(row => {
+            let supplier = row.cells[0].innerText.toLowerCase();
+            row.style.display = supplier.includes(filter) ? "" : "none";
+        });
+    });
+
+    document.querySelectorAll(".save-btn").forEach(button => {
+        button.addEventListener("click", function () {
+            let row = this.closest("tr");
+            let data = {
+                supplier: row.cells[0].innerText,
+                product: row.cells[1].innerText,
+                quantity: row.cells[2].innerText,
+                price: row.cells[3].innerText
+            };
+
+            fetch("/report/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            }).then(response => response.json())
+              .then(data => alert("Данные обновлены!"))
+              .catch(error => alert("Ошибка при обновлении данных!"));
+        });
+    });
+
+    fetch("/report/chart-data")
+    .then(response => response.json())
+    .then(data => {
+        let labels = data.map(item => item.month);
+        let volumes = data.map(item => item.volume);
+
+        let ctx = document.getElementById("supplyChart").getContext("2d");
+        new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Объем поставок",
+                    data: volumes,
+                    backgroundColor: "rgba(54, 162, 235, 0.6)"
+                }]
+            }
+        });
+    });
+
+    // График изменения цен
+fetch("/report/chart/price-trend")
+    .then(response => response.json())
+    .then(data => {
+        let ctx = document.getElementById("priceTrendChart").getContext("2d");
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: data.map(item => item.product),
+                datasets: [{
+                    label: "Средняя цена",
+                    data: data.map(item => item.averagePrice),
+                    backgroundColor: "rgba(255, 99, 132, 0.6)",
+                    borderColor: "rgba(255, 99, 132, 1)",
+                    fill: false
+                }]
+            }
+        });
+    });
+
+// Круговая диаграмма поставщиков
+fetch("/report/chart/supplier-distribution")
+    .then(response => response.json())
+    .then(data => {
+        let ctx = document.getElementById("supplierDistributionChart").getContext("2d");
+        new Chart(ctx, {
+            type: "pie",
+            data: {
+                labels: data.map(item => item.supplier),
+                datasets: [{
+                    label: "Доля поставщиков",
+                    data: data.map(item => item.totalQuantity),
+                    backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4CAF50"]
+                }]
+            }
+        });
+    });
+
+function exportCharts() {
+    let charts = document.querySelectorAll("canvas");
+    let images = [];
+
+    charts.forEach((chart, index) => {
+        let image = chart.toDataURL("image/png");
+        images.push(image);
+    });
+
+    fetch("/report/export/excel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images })
+    }).then(response => response.blob())
+      .then(blob => {
+          let url = window.URL.createObjectURL(blob);
+          let a = document.createElement("a");
+          a.href = url;
+          a.download = "report_with_charts.xlsx";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+      });
+}
+
+    function exportPdf() {
+    let charts = document.querySelectorAll("canvas");
+    let images = [];
+
+    charts.forEach(chart => {
+        let image = chart.toDataURL("image/png");
+        images.push(image);
+    });
+
+    fetch("/report/export/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images })
+    }).then(response => response.blob())
+      .then(blob => {
+          let url = window.URL.createObjectURL(blob);
+          let a = document.createElement("a");
+          a.href = url;
+          a.download = "report_with_charts.pdf";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+      });
+}
+
+</script>
 </body>
 </html>
