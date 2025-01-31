@@ -1,6 +1,7 @@
 package ru.otus.DAO;
 
 
+import org.springframework.stereotype.Repository;
 import ru.otus.model.SupplyReport;
 
 import javax.sql.DataSource;
@@ -10,7 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
+@Repository
 public class SupplyReportDaoImpl implements SupplyReportDao {
 
     private final DataSource dataSource;

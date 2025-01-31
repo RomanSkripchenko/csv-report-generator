@@ -1,11 +1,15 @@
 package ru.otus.Handler;
 
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.stereotype.Component;
 import ru.otus.DAO.SupplyReportDaoImpl;
 import ru.otus.model.SupplyReport;
 
 import java.sql.SQLException;
 import java.util.List;
-
+@SpringBootApplication
+@ComponentScan(basePackages = "ru.otus")
 public class SupplyReportHandler {
 
     private final SupplyReportDaoImpl supplyReportDao;

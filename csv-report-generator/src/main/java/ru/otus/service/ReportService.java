@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -98,7 +99,7 @@ public class ReportService {
         // Логика обработки файла
         System.out.println("Processing file: " + file.getOriginalFilename());
     }
-
+    @Autowired
     public ReportService(SupplyReportHandler supplyReportHandler) {
         this.supplyReportHandler = supplyReportHandler;
     }

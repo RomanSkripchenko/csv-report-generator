@@ -15,7 +15,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 @Controller
-@RequestMapping("/reports")
+@RequestMapping("/report")
 public class ReportController {
 
     private final ReportService reportService;
@@ -28,15 +28,21 @@ public class ReportController {
     @PostMapping("/upload")
     public String uploadFile(@RequestParam("file") MultipartFile file, Model model) {
         try {
-            // Используем ReportService для парсинга CSV
+            // Парсим CSV
             List<SupplyReport> parsedReports = reportService.parseCsv(file);
+
+            // Сохраняем в базу
             for (SupplyReport report : parsedReports) {
                 reportService.saveReport(report);
             }
+
+            // Обновляем cachedReports
+            cachedReports = parsedReports;
+
             model.addAttribute("reports", parsedReports);
             return "report";
         } catch (Exception e) {
-            model.addAttribute("error", "Failed to process the file: " + e.getMessage());
+            model.addAttribute("error", "Ошибка при обработке файла: " + e.getMessage());
             return "upload";
         }
     }
@@ -62,8 +68,8 @@ public class ReportController {
 
     @GetMapping("/export/excel")
     public ResponseEntity<InputStreamResource> exportToExcel() throws Exception {
-        if (cachedReports == null) {
-            throw new IllegalStateException("No data available to export.");
+        if (cachedReports == null || cachedReports.isEmpty()) {
+            throw new IllegalStateException("Нет данных для экспорта. Сначала загрузите файл.");
         }
 
         var excelStream = reportService.exportToExcel(cachedReports);
