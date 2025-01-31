@@ -99,7 +99,6 @@ public class ReportController {
 
     @PostMapping("/update")
     public ResponseEntity<String> updateReport(@RequestBody SupplyReport report) {
-        System.out.println("Обновляемый отчет: " + report);
         try {
             reportService.updateReport(report);
             return ResponseEntity.ok("{\"message\": \"Отчет успешно обновлен\"}");

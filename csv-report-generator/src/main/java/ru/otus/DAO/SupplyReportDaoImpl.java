@@ -76,9 +76,6 @@ public class SupplyReportDaoImpl implements SupplyReportDao {
     public void update(SupplyReport report) throws SQLException {
         String sql = "UPDATE SupplyReport SET Quantity = ?, Price = ? WHERE Supplier = ? AND Product = ?";
 
-        System.out.println("SQL-запрос: " + sql);
-        System.out.println("Данные: " + report.getQuantity() + ", " + report.getPrice() + ", " + report.getSupplier() + ", " + report.getProduct());
-
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, report.getQuantity());
@@ -87,7 +84,6 @@ public class SupplyReportDaoImpl implements SupplyReportDao {
             statement.setString(4, report.getProduct());
 
             int rowsUpdated = statement.executeUpdate();
-            System.out.println("Обновлено строк: " + rowsUpdated);
         }
     }
 
